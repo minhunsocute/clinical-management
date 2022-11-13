@@ -1,3 +1,9 @@
+import 'dart:io';
+import 'dart:typed_data';
+
+import 'package:clinic_manager/common/widgets/custom_button.dart';
+import 'package:clinic_manager/common/widgets/custom_dialog_error/error_dialog.dart';
+import 'package:clinic_manager/common/widgets/custom_dialog_error/success_dialog.dart';
 import 'package:clinic_manager/features/patient/profile_settings/controller/profile_setting_controller.dart';
 import 'package:clinic_manager/features/patient/profile_settings/screens/edit_profile_screen.dart';
 import 'package:clinic_manager/features/patient/profile_settings/screens/help_center_screen.dart';
@@ -6,11 +12,14 @@ import 'package:clinic_manager/features/patient/profile_settings/screens/notific
 import 'package:clinic_manager/features/patient/profile_settings/screens/payement_setting_screen.dart';
 import 'package:clinic_manager/features/patient/profile_settings/screens/security_setting_screen.dart';
 import 'package:clinic_manager/services/auth_services.dart';
+import 'package:clinic_manager/services/data_services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../../../constants/app_color.dart';
+import '../../../../constants/utils.dart';
 import '../widgets/bottom_log_out.dart';
 import 'invite_friend_screen.dart';
 
@@ -18,6 +27,7 @@ class ProfileScreen extends StatelessWidget {
   ProfileScreen({super.key});
   RxBool check = false.obs;
   final _controller = Get.put(ProfileSettingController());
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -46,7 +56,7 @@ class ProfileScreen extends StatelessWidget {
         ),
         actions: [
           InkWell(
-            onTap: () => print(AuthService.instance.user.password),
+            onTap: () {},
             child: const Icon(Icons.more_horiz, color: AppColors.textColor),
           ),
           const SizedBox(width: 10),
@@ -74,14 +84,23 @@ class ProfileScreen extends StatelessWidget {
             ),
             child: Row(
               children: [
-                Container(
-                  width: 100.0,
-                  height: 100.0,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(10.0),
-                    image: const DecorationImage(
-                      fit: BoxFit.cover,
-                      image: AssetImage('assets/images/doctor2.png'),
+                InkWell(
+                  onTap: () async {
+                    await showModalBottomSheet(
+                      backgroundColor: Colors.transparent,
+                      context: context,
+                      builder: (builder) => BottomChangeAvt(),
+                    );
+                  },
+                  child: Container(
+                    width: 100.0,
+                    height: 100.0,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(10.0),
+                      image: DecorationImage(
+                        fit: BoxFit.cover,
+                        image: NetworkImage(_controller.getUser().avt),
+                      ),
                     ),
                   ),
                 ),
@@ -93,13 +112,15 @@ class ProfileScreen extends StatelessWidget {
                     children: [
                       Row(
                         children: [
-                          Expanded(
-                            child: Text(
-                              _controller.getUser().name,
-                              style: const TextStyle(
-                                  color: AppColors.textColor,
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.bold),
+                          Obx(
+                            () => Expanded(
+                              child: Text(
+                                _controller.user.name,
+                                style: const TextStyle(
+                                    color: AppColors.textColor,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.bold),
+                              ),
                             ),
                           ),
                           InkWell(
@@ -149,13 +170,15 @@ class ProfileScreen extends StatelessWidget {
                         children: [
                           const Icon(Icons.person,
                               color: AppColors.primaryColor1, size: 15),
-                          Text(
-                            ' ${_controller.getUser().gender}',
-                            style: const TextStyle(
-                                color: AppColors.textColor,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w500),
-                          ),
+                          Obx(
+                            () => Text(
+                              ' ${_controller.user.gender}',
+                              style: const TextStyle(
+                                  color: AppColors.textColor,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500),
+                            ),
+                          )
                         ],
                       ),
                     ],
@@ -403,6 +426,165 @@ class RowProfile extends StatelessWidget {
             )
           ],
         ),
+      ),
+    );
+  }
+}
+
+class BottomChangeAvt extends StatefulWidget {
+  BottomChangeAvt({
+    Key? key,
+  }) : super(key: key);
+
+  @override
+  State<BottomChangeAvt> createState() => _BottomChangeAvtState();
+}
+
+class _BottomChangeAvtState extends State<BottomChangeAvt> {
+  final AuthService _auth = AuthService.instance;
+  File? _image;
+  void selectedImage() async {
+    File file = await pickFile();
+    setState(() {
+      _image = file;
+    });
+  }
+
+  // void selectFile(XFile? file) async {
+  //   // _image = await file?.readAsBytes();
+  // }
+  final _controller = Get.find<ProfileSettingController>();
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 230,
+      // padding: const EdgeInsets.all(10.0),
+      decoration: const BoxDecoration(
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(10.0),
+          topRight: Radius.circular(10.0),
+        ),
+        color: Colors.white,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          const SizedBox(height: 10),
+          Container(
+            width: 80,
+            height: 5,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(30),
+              color: AppColors.textColor1.withOpacity(0.2),
+            ),
+          ),
+          const SizedBox(height: 10),
+          const Text('Change Avt',
+              style: TextStyle(
+                color: AppColors.textColor,
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+              )),
+          const SizedBox(height: 10),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 20.0),
+            child: Divider(color: AppColors.textColor1),
+          ),
+          const SizedBox(height: 10.0),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20.0),
+            child: Row(
+              children: [
+                // ignore: unnecessary_null_comparison
+                _image == null
+                    ? Container(
+                        width: 100.0,
+                        height: 100.0,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(10.0),
+                          image: const DecorationImage(
+                            fit: BoxFit.cover,
+                            image: AssetImage('assets/images/doctor2.png'),
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.textColor.withOpacity(0.3),
+                              blurRadius: 10.0,
+                            ),
+                          ],
+                        ),
+                      )
+                    : Container(
+                        width: 100.0,
+                        height: 100.0,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(10.0),
+                          image: DecorationImage(
+                            fit: BoxFit.cover,
+                            image: FileImage(_image!),
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.textColor.withOpacity(0.3),
+                              blurRadius: 10.0,
+                            ),
+                          ],
+                        ),
+                      ),
+                const SizedBox(width: 20.0),
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    SizedBox(
+                      height: 30.0,
+                      width: 200,
+                      child: CustomButton(
+                        text: 'From Gallery',
+                        onTap: () => selectedImage(),
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    SizedBox(
+                        height: 30.0,
+                        width: 200,
+                        child: CustomButton(text: "From Camera", onTap: () {})),
+                    const SizedBox(height: 5.0),
+                    SizedBox(
+                      height: 30.0,
+                      width: 200.0,
+                      child: Obx(
+                        () => ElevatedButton(
+                          onPressed: () => (_image != null)
+                              ? _controller.updateAvt(context, _image!)
+                              : showDialog(
+                                  context: context,
+                                  builder: (context) => const ErrorDialog(
+                                      question: "Update Avata",
+                                      title1: "Please choose your avt")),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primaryColor,
+                            minimumSize: const Size(double.infinity, 50),
+                          ),
+                          child: _controller.isLoading2.value
+                              ? const Center(
+                                  child: CircularProgressIndicator(
+                                      color: Colors.white))
+                              : const Text(
+                                  'Update',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

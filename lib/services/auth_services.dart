@@ -1,8 +1,12 @@
 import 'dart:convert';
+import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:clinic_manager/constants/utils.dart';
+import 'package:clinic_manager/services/data_services.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 
@@ -10,6 +14,7 @@ import '../constants/api_link.dart';
 import '../constants/error_handing.dart';
 import '../models/user.dart';
 import '../routes/route_name.dart';
+import 'package:cloudinary_public/cloudinary_public.dart';
 
 class AuthService extends ChangeNotifier {
   AuthService._privateConstructor();
@@ -26,6 +31,7 @@ class AuthService extends ChangeNotifier {
     gender: '',
     phoneNumber: '',
     dateBorn: DateTime.now(),
+    avt: '',
   );
   User get user => _user;
   void setUser(String user) {
@@ -99,6 +105,7 @@ class AuthService extends ChangeNotifier {
         onSuccess: () async {
           SharedPreferences prefs = await SharedPreferences.getInstance();
           // ignore: use_build_context_synchronously
+          // DataService.instance.fetchAllData();
           AuthService.instance.setUser(res.body);
           await prefs.setString('x-auth-token', jsonDecode(res.body)['token']);
           Get.offAllNamed(RouteNames.dashboardScreen);
@@ -108,6 +115,45 @@ class AuthService extends ChangeNotifier {
       updataLoading();
     }
     updataLoading();
+  }
+
+  void updateAvata(
+      {required File file,
+      required String email,
+      required BuildContext context,
+      required VoidCallback callback}) async {
+    try {
+      final cloudinary = CloudinaryPublic('ddopvilpr', 'evzte9pr');
+      CloudinaryResponse imageRes = await cloudinary.uploadFile(
+        CloudinaryFile.fromFile(file.path,
+            resourceType: CloudinaryResourceType.Image, folder: email),
+      );
+      String imageUrl = imageRes.secureUrl;
+      http.Response res = await http.post(
+        Uri.parse(
+          '${ApiLink.uri}/api/updateAvata',
+        ),
+        body: jsonEncode(
+          {
+            'email': email,
+            'image': imageUrl,
+          },
+        ),
+        headers: <String, String>{
+          'Content-Type': 'application/json; charset=UTF-8',
+        },
+      );
+      print(res.body);
+      httpErrorHandle(
+        response: res,
+        context: context,
+        onSuccess: () async {
+          callback();
+        },
+      );
+    } catch (err) {
+      callback();
+    }
   }
 
   void editProfile({
@@ -184,7 +230,49 @@ class AuthService extends ChangeNotifier {
     }
     callBack();
   }
+
+  void insertDoctor({
+    required String type,
+    required String description,
+    required int timeStart,
+    required int timeFinish,
+    required int experience,
+    required VoidCallback callback,
+    required BuildContext context,
+  }) async {
+    try {
+      http.Response res = await http.post(
+        Uri.parse(
+          '${ApiLink.uri}/api/doctors/insertDoctor',
+        ),
+        body: jsonEncode({
+          'email': AuthService.instance.user.email,
+          'type': type,
+          'description': description,
+          'timeStart': timeStart,
+          'timeFinish': timeFinish,
+          'experience': experience,
+        }),
+        headers: <String, String>{
+          'Content-Type': 'application/json; charset=UTF-8',
+        },
+      );
+      print(res.body);
+      httpErrorHandle(
+        response: res,
+        context: context,
+        onSuccess: () async {
+          callback();
+        },
+      );
+    } catch (e) {
+      callback();
+    }
+    callback();
+  }
 }
+
+
 
   // var response = jsonDecode(tokenRes.body);
       // if (response == true) {
